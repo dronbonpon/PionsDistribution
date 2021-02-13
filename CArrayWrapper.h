@@ -61,8 +61,8 @@ void FillXAxis( CArrayWrapper<Number>& xAxis, std::size_t upperBound )
     }
 }
 
-template<typename Number>
-void FillYAxis( CArrayWrapper<Number>& yAxis, std::map<int, int>& distributionMap_ )
+template<typename Key, typename Number>
+void FillYAxis( CArrayWrapper<Number>& yAxis, std::map<Key, int>& distributionMap_ )
 {
     int i = 0;
     for ( const auto & pair : distributionMap_ )

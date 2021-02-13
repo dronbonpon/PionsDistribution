@@ -13,7 +13,18 @@
 #include <TCanvas.h>
 #include <TGraph.h>
 
-#include "FillContainers.h"
+#include "../FillDistrMap.h"
+
+template<typename Pred>
+void FillDistr( TH1D* distr, std::size_t pointNumber, Pred pred, int param )
+{
+    for ( int i = 0; i < pointNumber; ++i )
+    {
+        int x = round( pred( param ) );
+
+        distr->Fill(x);
+    }
+}
 
 void SetDistrOptions( TH1D* distr )
 {
@@ -39,23 +50,36 @@ void pi_mesons()
 {
     
     std::unique_ptr<TFile> file = std::make_unique<TFile>( "output.root", "RECREATE" );
+    std::unique_ptr<TRandom> rnd = std::make_unique<TRandom3>();
     double upperBound = 20;
     TH1D* distr = new TH1D( "Exponential distribution of number pions", 
                             "Exponential distribution of number pions", 
                             100, -0.5, upperBound+0.5 );
 
     int pointNumber;
-    std::cout << "Enter number of points of distribution" << std::endl;
+    std::cout << "Enter the number of distribution points" << std::endl;
     std::cin >> pointNumber;
     
     if ( pointNumber <= 0 )
     {
         throw std::runtime_error( "Number of points must be positive" );
     }
+    if ( pointNumber > 5000000)
+    {
+        throw std::runtime_error( "Too many points" );
+    }
 
     std::map<int, int> distributionMap_;
-    FillDistrMap( distributionMap_, pointNumber, upperBound );
-    FillDistr( distr, pointNumber );
+    FillDistrMap( distributionMap_, pointNumber, upperBound, 
+    [&rnd]( int param )
+    {
+        return round( rnd->Exp(param) );
+    }, 4 );
+    FillDistr( distr, pointNumber,
+    [&rnd]( int param )
+    {
+        return round( rnd->Exp(param) );
+    }, 4 );
 
     auto xAxis = CArrayWrapper<int>( upperBound + 1 );
     auto yAxis = CArrayWrapper<int>( upperBound + 1 );
