@@ -14,9 +14,9 @@
 #include <TGraph.h>
 #include <TTree.h>
 
-#include "PionsGroup.h"
+#include "PionsEvent.h"
 
-void FillTree( TTree& tree, const std::vector<PionsGroup>& pions )
+void FillTree( TTree& tree, const std::vector<PionsEvent>& pions )
 {
     Float_t px, py, pz, ip;
     Int_t eventNum = 1;
@@ -57,7 +57,7 @@ void first_lab()
         throw std::runtime_error( "Too many points" );
     }
 
-    auto pions = std::vector<PionsGroup>( pointNumber );
+    auto pions = std::vector<PionsEvent>( pointNumber );
 
     for ( int i = 0; i < pointNumber; ++i )
     {
@@ -81,7 +81,7 @@ void first_lab()
         // Импульс и энергия каждой частицы в каждой из групп также выбирается случайно:
         // Энергия - по экспоненциальному закону с параметром 1000 (в МЭв),
         // Импульс - по равномерно распределенной сфере с радиусом sqrt( 2 * масса пионов * величина энергии )
-        pions[i] = PionsGroup( numberOfPions, energyPred, energyParam, momentumPred, pionMass );
+        pions[i] = PionsEvent( numberOfPions, energyPred, energyParam, momentumPred, pionMass );
     }
 
     // Записываем полученные значения 4-х импульса в дерево

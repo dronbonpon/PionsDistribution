@@ -1,22 +1,19 @@
 #include <vector>
 #include <cmath>
 
-#include <TRandom.h>
-#include <TRandom3.h>
-
 #include "SinglePion.h"
 
-struct PionsGroup
+struct PionsEvent
 {
     std::size_t numberOfPions;
     std::vector<SinglePion> singlePions;
 
-    PionsGroup() = default;
-    PionsGroup( const PionsGroup& other )
+    PionsEvent() = default;
+    PionsEvent( const PionsEvent& other )
     :numberOfPions( other.numberOfPions ), singlePions( other.singlePions )
     {}
     
-    PionsGroup& operator=( const PionsGroup& other )
+    PionsEvent& operator=( const PionsEvent& other )
     {
         if ( this == &other )
         {
@@ -27,8 +24,15 @@ struct PionsGroup
         return *this;
     } 
 
-    template<typename EnergyPred, typename MomentumPred>
-    PionsGroup( int numberOfPions_, EnergyPred energyPred, int energyParam, MomentumPred momentumPred, double pionMass )
+    /// Конструктор класса PionsEvent
+    /// numberOfPions_ - число пионов в событии
+    /// energyPred - функция, которая определяет значение энергии для пионов в данном событии
+    /// energyParam - параметр этой функции
+    /// momentumPred - функция, которая определяет значения трех проекций импульса
+    /// pionMass - масса пионов в событии
+    template<typename EnergyPred, typename MomentumPred, typename EnergyParam >
+    PionsEvent( int numberOfPions_, EnergyPred energyPred, EnergyParam energyParam, 
+                MomentumPred momentumPred, double pionMass )
     : numberOfPions( numberOfPions_ )
     {
         std::unique_ptr<TRandom> rnd = std::make_unique<TRandom3>();
@@ -36,11 +40,9 @@ struct PionsGroup
         for ( int i = 0; i < numberOfPions_; ++i )
         {
             double energy = energyPred( energyParam );
-            std::cout << energy << std::endl;
             double absoluteRadius = std::sqrt( 2 * pionMass * energy );
             double px, py, pz;
             momentumPred( px, py, pz, absoluteRadius );
-            std::cout << px << " " << py << " " << pz << std::endl;
             singlePions[i] = SinglePion( energy, px, py, pz );
         }
     }
