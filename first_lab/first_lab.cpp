@@ -63,12 +63,25 @@ void first_lab()
     {
         int numberOfPions = round( rnd->Exp( 4 ) );
 
+        auto energyPred = [&rnd]( int energyParam )
+        {   
+            return rnd->Exp( energyParam );
+        };
+        int energyParam = 1000;
+
+        auto momentumPred = [&rnd]( double& px, double& py, double& pz, double absoluteRadius )
+        {
+            rnd->Sphere( px, py, pz, absoluteRadius );
+        };
+
+        double pionMass = 139.5;
+
         // Заполняем значения события, количество частиц в котором равно 
         // полученному случайным образом по экспоненциальному распределению числу
         // Импульс и энергия каждой частицы в каждой из групп также выбирается случайно:
         // Энергия - по экспоненциальному закону с параметром 1000 (в МЭв),
-        // Импульс - по равномерно распределенной сфере с радиусом sqrt( 2 * 139.5 * величина энергии )
-        pions[i] = PionsGroup( numberOfPions );
+        // Импульс - по равномерно распределенной сфере с радиусом sqrt( 2 * масса пионов * величина энергии )
+        pions[i] = PionsGroup( numberOfPions, energyPred, energyParam, momentumPred, pionMass );
     }
 
     // Записываем полученные значения 4-х импульса в дерево

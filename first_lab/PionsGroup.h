@@ -27,17 +27,20 @@ struct PionsGroup
         return *this;
     } 
 
-    PionsGroup( int numberOfPions_ )
+    template<typename EnergyPred, typename MomentumPred>
+    PionsGroup( int numberOfPions_, EnergyPred energyPred, int energyParam, MomentumPred momentumPred, double pionMass )
     : numberOfPions( numberOfPions_ )
     {
         std::unique_ptr<TRandom> rnd = std::make_unique<TRandom3>();
         singlePions = std::vector<SinglePion>( numberOfPions_ );
         for ( int i = 0; i < numberOfPions_; ++i )
         {
-            double energy = rnd->Exp( 1000 );
-            double absoluteRadius = std::sqrt( 2 * 139.5 * energy );
+            double energy = energyPred( energyParam );
+            std::cout << energy << std::endl;
+            double absoluteRadius = std::sqrt( 2 * pionMass * energy );
             double px, py, pz;
-            rnd->Sphere( px, py, pz, absoluteRadius );
+            momentumPred( px, py, pz, absoluteRadius );
+            std::cout << px << " " << py << " " << pz << std::endl;
             singlePions[i] = SinglePion( energy, px, py, pz );
         }
     }
