@@ -9,20 +9,8 @@ struct PionsEvent
     std::vector<SinglePion> singlePions;
 
     PionsEvent() = default;
-    PionsEvent( const PionsEvent& other )
-    :numberOfPions( other.numberOfPions ), singlePions( other.singlePions )
-    {}
-    
-    PionsEvent& operator=( const PionsEvent& other )
-    {
-        if ( this == &other )
-        {
-            return *this;
-        }
-        numberOfPions = other.numberOfPions;
-        singlePions = other.singlePions;
-        return *this;
-    } 
+    PionsEvent( const PionsEvent& other ) = default;
+    PionsEvent& operator=( const PionsEvent& other ) = default; 
 
     /// Конструктор класса PionsEvent
     /// numberOfPions_ - число пионов в событии
