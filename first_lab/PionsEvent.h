@@ -1,7 +1,11 @@
+#pragma once
+
 #include <vector>
 #include <cmath>
+#include <thread>
 
 #include "SinglePion.h"
+#include "thread_RAII.h"
 
 struct PionsEvent
 {
@@ -27,11 +31,16 @@ struct PionsEvent
         singlePions = std::vector<SinglePion>( numberOfPions_ );
         for ( int i = 0; i < numberOfPions_; ++i )
         {
+            if ( pionMass <= 0 )
+            {
+                throw std::runtime_error( "Pion's mass must be positive" );
+            }
+            
             double energy = energyPred( energyParam );
             double absoluteRadius = std::sqrt( 2 * pionMass * energy );
             double px, py, pz;
             momentumPred( px, py, pz, absoluteRadius );
             singlePions[i] = SinglePion( energy, px, py, pz );
         }
-    }
+    }            
 };

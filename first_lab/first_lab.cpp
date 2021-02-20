@@ -4,6 +4,7 @@
 #include <map>
 #include <stdexcept>
 #include <vector>
+#include <chrono>
 
 #include <TRandom.h>
 #include <TRandom3.h>
@@ -14,7 +15,26 @@
 #include <TGraph.h>
 #include <TTree.h>
 
-#include "PionsEvent.h"
+#include "Compute.h"
+
+void SpeedTest( std::vector<PionsEvent>& pions )
+{
+    using namespace std::chrono;
+    int pointNumber = 1000000;
+
+    high_resolution_clock::time_point parallelStart = high_resolution_clock::now();
+    ComputeParallel( pions );
+    high_resolution_clock::time_point parallelEnd = high_resolution_clock::now();
+    duration<double, std::milli> parallelTimeSpan = parallelEnd - parallelStart;
+    std::cout << "Computing " << pointNumber << " points" << std::endl;
+    std::cout << "Parallel time: " << parallelTimeSpan.count() << std::endl;
+
+    high_resolution_clock::time_point seqStart = high_resolution_clock::now();
+    ComputeSequentially( pions, 0, pions.size() );
+    high_resolution_clock::time_point seqEnd = high_resolution_clock::now();
+    duration<double, std::milli> seqTimeSpan = seqEnd - seqStart;
+    std::cout << "Sequential time: " << seqTimeSpan.count() << std::endl;
+}
 
 void FillTree( TTree& tree, const std::vector<PionsEvent>& pions )
 {
@@ -26,9 +46,9 @@ void FillTree( TTree& tree, const std::vector<PionsEvent>& pions )
     tree.Branch("ip",&ip,"ip/F");
     tree.Branch("ev",&eventNum,"ev/I");
     
-    for ( const auto& pionGroup: pions )
+    for ( const auto& pionEvent: pions )
     {
-        for ( const auto& pion: pionGroup.singlePions )
+        for ( const auto& pion: pionEvent.singlePions )
         {
             px = pion.px;
             py = pion.py;
@@ -45,48 +65,47 @@ void first_lab()
     std::unique_ptr<TRandom> rnd = std::make_unique<TRandom3>();
     TFile file("tree.root", "recreate");
     int pointNumber;
-    std::cout << "Enter the number of distribution points" << std::endl;
+    std::cout << "Enter the number of events: ";
     std::cin >> pointNumber;
+
+    bool parallelComputing = false;
 
     if ( pointNumber <= 0 )
     {
         throw std::runtime_error( "Number of points must be positive" );
     }
-    if ( pointNumber > 100000 )
+    if ( pointNumber >= 100000 && pointNumber <= 4000000 )
+    {
+        parallelComputing = true;
+    }
+    if ( pointNumber > 2000000 )
     {
         throw std::runtime_error( "Too many points" );
     }
 
     auto pions = std::vector<PionsEvent>( pointNumber );
 
-    for ( int i = 0; i < pointNumber; ++i )
+    if ( parallelComputing )
     {
-        int numberOfPions = round( rnd->Exp( 4 ) );
-
-        auto energyPred = [&rnd]( int energyParam )
-        {   
-            return rnd->Exp( energyParam );
-        };
-        int energyParam = 1000;
-
-        auto momentumPred = [&rnd]( double& px, double& py, double& pz, double absoluteRadius )
-        {
-            rnd->Sphere( px, py, pz, absoluteRadius );
-        };
-
-        double pionMass = 139.5;
-
-        // Заполняем значения события, количество частиц в котором равно 
-        // полученному случайным образом по экспоненциальному распределению числу
-        // Импульс и энергия каждой частицы в каждой из групп также выбирается случайно:
-        // Энергия - по экспоненциальному закону с параметром 1000 (в МЭв),
-        // Импульс - по равномерно распределенной сфере с радиусом sqrt( 2 * масса пионов * величина энергии )
-        pions[i] = PionsEvent( numberOfPions, energyPred, energyParam, momentumPred, pionMass );
+        ComputeParallel( pions );
     }
+    else
+    {
+        ComputeSequentially( pions, 0, pions.size() );
+    }
+
+    // Раскомментировать, если хотите провести сравнение скорости 
+    // параллельных и последовательных вычислений
+    // В таком слуае, желательно закомментировать строки 90, 94 и 106
+    // ( Чтобы программа исполнялась быстрее )
+
+    //SpeedTest( pions );
 
     // Записываем полученные значения 4-х импульса в дерево
     TTree tree("tree", "4-x momentum");
     FillTree(tree, pions);
 
     tree.Write();
+
+    std::cout << pointNumber << " events were successfully generated and written to the tree.root" << std::endl;
 }
