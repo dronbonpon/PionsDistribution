@@ -44,7 +44,7 @@ void ComputeParallel( std::vector<PionsEvent>& pions )
     
     std::vector<ThreadRAII> threads;
 
-    int sizeOfSequentialTask = ( pions.size()%6 == 0 ) ? 
+    int sizeOfSequentialTask = ( pions.size() % 6 == 0 ) ? 
                                 pions.size()/numberOfTasks : pions.size()/numberOfTasks + 1;
 
     int i = sizeOfSequentialTask;
@@ -60,4 +60,14 @@ void ComputeParallel( std::vector<PionsEvent>& pions )
     ThreadRAII currentThread( std::thread( ComputeSequentially, std::ref( pions ), i, pions.size() ), ThreadRAII::DtorAction::join );
     threads.emplace_back( std::move( currentThread ) );
 
+}
+
+
+void Compute( std::vector<PionsEvent>& pions )
+{
+    if ( pions.size() > 100000 )
+    {
+        return ComputeParallel( pions );
+    }
+    return ComputeSequentially( pions, 0, pions.size() );
 }

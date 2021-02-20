@@ -17,25 +17,6 @@
 
 #include "Compute.h"
 
-void SpeedTest( std::vector<PionsEvent>& pions )
-{
-    using namespace std::chrono;
-    int pointNumber = 1000000;
-
-    high_resolution_clock::time_point parallelStart = high_resolution_clock::now();
-    ComputeParallel( pions );
-    high_resolution_clock::time_point parallelEnd = high_resolution_clock::now();
-    duration<double, std::milli> parallelTimeSpan = parallelEnd - parallelStart;
-    std::cout << "Computing " << pointNumber << " points" << std::endl;
-    std::cout << "Parallel time: " << parallelTimeSpan.count() << std::endl;
-
-    high_resolution_clock::time_point seqStart = high_resolution_clock::now();
-    ComputeSequentially( pions, 0, pions.size() );
-    high_resolution_clock::time_point seqEnd = high_resolution_clock::now();
-    duration<double, std::milli> seqTimeSpan = seqEnd - seqStart;
-    std::cout << "Sequential time: " << seqTimeSpan.count() << std::endl;
-}
-
 void FillTree( TTree& tree, const std::vector<PionsEvent>& pions )
 {
     Float_t px, py, pz, ip;
@@ -62,21 +43,14 @@ void FillTree( TTree& tree, const std::vector<PionsEvent>& pions )
 
 void first_lab()
 {
-    std::unique_ptr<TRandom> rnd = std::make_unique<TRandom3>();
     TFile file("tree.root", "recreate");
     int pointNumber;
     std::cout << "Enter the number of events: ";
     std::cin >> pointNumber;
 
-    bool parallelComputing = false;
-
     if ( pointNumber <= 0 )
     {
         throw std::runtime_error( "Number of points must be positive" );
-    }
-    if ( pointNumber >= 100000 && pointNumber <= 4000000 )
-    {
-        parallelComputing = true;
     }
     if ( pointNumber > 2000000 )
     {
@@ -85,21 +59,7 @@ void first_lab()
 
     auto pions = std::vector<PionsEvent>( pointNumber );
 
-    if ( parallelComputing )
-    {
-        ComputeParallel( pions );
-    }
-    else
-    {
-        ComputeSequentially( pions, 0, pions.size() );
-    }
-
-    // Раскомментировать, если хотите провести сравнение скорости 
-    // параллельных и последовательных вычислений
-    // В таком слуае, желательно закомментировать строки 90, 94 и 106
-    // ( Чтобы программа исполнялась быстрее )
-
-    //SpeedTest( pions );
+    Compute( pions );
 
     // Записываем полученные значения 4-х импульса в дерево
     TTree tree("tree", "4-x momentum");
