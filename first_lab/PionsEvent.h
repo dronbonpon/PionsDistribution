@@ -42,5 +42,16 @@ struct PionsEvent
             momentumPred( px, py, pz, absoluteRadius );
             singlePions[i] = SinglePion( energy, px, py, pz );
         }
-    }            
+    }
+
+    PionsEvent( const std::vector<float>& px, const std::vector<float>& py, 
+                const std::vector<float>& pz, const std::vector<float>& ip, int numberOfPions_ )
+    : numberOfPions( numberOfPions_ )
+    {
+        for ( int i = 0; i < numberOfPions; ++i )
+        {
+            SinglePion pion( ip[i], px[i], py[i], pz[i] );
+            singlePions.push_back( pion );
+        }
+    }
 };
