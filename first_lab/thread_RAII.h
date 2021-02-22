@@ -2,6 +2,7 @@
 
 #include <thread>
 
+// Обертка над  std::thred, позволяющая реализовать идиому RAII
 class ThreadRAII{
 public:
     enum class DtorAction { join, detach };

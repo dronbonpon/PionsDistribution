@@ -51,18 +51,23 @@ void ComputeParallel( std::vector<PionsEvent>& pions )
     
     while ( i < pions.size() )
     {
-        ThreadRAII currentThread( std::thread( ComputeSequentially, std::ref( pions ), i-sizeOfSequentialTask, i ), ThreadRAII::DtorAction::join );
+        ThreadRAII currentThread( std::thread( ComputeSequentially, std::ref( pions ), i-sizeOfSequentialTask, i ), 
+                                  ThreadRAII::DtorAction::join );
         threads.emplace_back( std::move( currentThread ) );
         i += sizeOfSequentialTask;
     }
 
     i -= sizeOfSequentialTask;
-    ThreadRAII currentThread( std::thread( ComputeSequentially, std::ref( pions ), i, pions.size() ), ThreadRAII::DtorAction::join );
+    ThreadRAII currentThread( std::thread( ComputeSequentially, std::ref( pions ), i, pions.size() ), 
+                              ThreadRAII::DtorAction::join );
     threads.emplace_back( std::move( currentThread ) );
 
 }
 
-
+// Общая функция для заполнения вектора из событий пионов
+// В зависимости от размера вектора вызызвается либо функция,
+// которая выполняет вычисления последовательно, либо та, которая 
+// делает это параллельно
 void Compute( std::vector<PionsEvent>& pions )
 {
     if ( pions.size() > 100000 )
@@ -70,4 +75,40 @@ void Compute( std::vector<PionsEvent>& pions )
         return ComputeParallel( pions );
     }
     return ComputeSequentially( pions, 0, pions.size() );
+}
+
+// Считает быстроту, псевдобыстроту и азимутальный угол вектора
+// из событий пионов для каждого отдельного пиона
+void ComputeParams( std::vector<PionsEvent>& pions )
+{
+    for ( auto & event : pions )
+    {
+        for ( auto & pion : event.singlePions )
+        {
+            double absMomentum = std::sqrt( pion.px*pion.px + pion.py*pion.py + pion.pz*pion.pz );
+            double rapidity = std::log( ( pion.energy + absMomentum )/( pion.energy - absMomentum ) )/2;
+            pion.SetRapidity( rapidity );
+            double pseudorapidity = std::log( ( pion.energy + pion.pz )/( pion.energy - pion.pz ) )/2;
+            pion.SetPseudorapidity( pseudorapidity );
+            if ( pion.px != 0 )
+            {
+                double azimuthalAngle = std::atan( pion.py / pion.px );
+                pion.SetAzimuthalAngle( azimuthalAngle );
+            }
+        }
+    }
+}
+
+// Выполняет преобразование Лоренца для вектора из событий пионов
+void LorentzTransformation( std::vector<PionsEvent>& pions, double b )
+{
+    long int speedOfLight = 1;
+    for ( auto & event : pions )
+    {
+        for ( auto & pion : event.singlePions )
+        {
+            pion.pz = ( pion.pz + b*pion.energy/speedOfLight )/std::sqrt( 1 - b*b );
+            pion.energy = ( pion.energy + b*speedOfLight*pion.pz )/std::sqrt( 1 - b*b );
+        }
+    }
 }

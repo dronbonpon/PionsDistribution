@@ -44,6 +44,9 @@ struct PionsEvent
         }
     }
 
+    /// Конструктор класса PionsEvent
+    /// px, py, pz, ip - соотвественно имульсы и энергии отдельных пионов в событии
+    /// numberOfPions_ - число пионов в событии
     PionsEvent( const std::vector<float>& px, const std::vector<float>& py, 
                 const std::vector<float>& pz, const std::vector<float>& ip, int numberOfPions_ )
     : numberOfPions( numberOfPions_ )
