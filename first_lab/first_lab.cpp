@@ -14,8 +14,10 @@
 #include <TCanvas.h>
 #include <TGraph.h>
 #include <TTree.h>
+#include <TStyle.h>
 
 #include "Compute.h"
+#include "PionsEvent.h"
 
 void FillTree( TTree& tree, const std::vector<PionsEvent>& pions )
 {
@@ -100,6 +102,7 @@ void SetDistrOptions( TH1D* distr, const std::string& xAxis, const std::string& 
     distr->SetYTitle( yAxis.c_str() );
     distr->SetFillColor( fillColor );
     distr->SetMarkerStyle( markerStyle );
+    distr->SetStats( false );
 }
 
 void FillDistr( TH1D* rapidity, TH1D* pseudorapidity, const std::vector<PionsEvent>& pions )
@@ -132,39 +135,39 @@ void FillDistr( TH1D* rapidityDistrBefore, TH1D* rapidityDistrAfter,
 void first_lab()
 {
     TFile file("tree.root", "recreate");
-    int pointNumber;
+    int eventNumber;
     std::cout << "Enter the number of events: ";
-    std::cin >> pointNumber;
+    std::cin >> eventNumber;
 
-    if ( pointNumber <= 0 )
+    if ( eventNumber <= 0 )
     {
-        throw std::runtime_error( "Number of points must be positive" );
+        throw std::runtime_error( "Number of events must be positive" );
     }
-    if ( pointNumber > 2000000 )
+    if ( eventNumber > 2000000 )
     {
-        throw std::runtime_error( "Too many points" );
+        throw std::runtime_error( "Too events points" );
     }
 
-    auto pions = std::vector<PionsEvent>( pointNumber );
+    auto pions = std::vector<PionsEvent>( eventNumber );
 
     // Заполняем события рождения пионов
     Compute( pions );
 
     // Записываем полученные значения 4-х импульса в дерево
-    TTree tree("tree", "4-x momentum");
-    FillTree(tree, pions);
+    TTree tree( "tree", "4-x momentum" );
+    FillTree( tree, pions );
 
     tree.Write();
 
-    std::cout << pointNumber << " events were successfully generated and written to the tree.root" << std::endl;
+    std::cout << eventNumber << " events were successfully generated and written to the tree.root" << std::endl;
 
     file.Close();
 
     // Читаем сгенерированные события из дерева в вектор pionsFromTree
     std::vector<PionsEvent> pionsFromTree;
-    ReadTree("tree.root", "tree", pionsFromTree );
+    ReadTree( "tree.root", "tree", pionsFromTree );
 
-    std::cout << pointNumber << " events were successfully readed from the tree.root" << std::endl;
+    std::cout << eventNumber << " events were successfully readed from the tree.root" << std::endl;
 
     // Вычисляем быстроту, псевдобыстроту и азимутальный угол каждой частицы
     ComputeParams( pionsFromTree );
@@ -176,7 +179,7 @@ void first_lab()
     // Вычисляем быстроту и псевдобыстроту частиц после преобразования Лоренца
     ComputeParams( pionsFromTreeAfterLorentz );
 
-    TFile output( "output.root", "RECREATE" );
+    TFile outputFile( "OutputHists.root", "RECREATE" );
 
     // Рисуем графики
     TH1D* rapidityDistrBefore = new TH1D( "Rapidity distribution of pions before Lorentz transformation", 
@@ -197,13 +200,13 @@ void first_lab()
     
     FillDistr( rapidityDistrBefore, rapidityDistrAfter, pseudorapidityDistrBefore, 
                pseudorapidityDistrAfter, pionsFromTree, pionsFromTreeAfterLorentz );
-
+    
     rapidityDistrBefore->Write();
     pseudorapidityDistrBefore->Write();
 
     rapidityDistrAfter->Write();
     pseudorapidityDistrAfter->Write();
 
-    std::cout << "Histogram were successfully created and writed to output.root" << std::endl;
+    std::cout << "Histogram were successfully created and writed to OutputHists.root" << std::endl;
 
 }

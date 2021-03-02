@@ -14,7 +14,7 @@ struct PionsEvent
 
     PionsEvent() = default;
     PionsEvent( const PionsEvent& other ) = default;
-    PionsEvent& operator=( const PionsEvent& other ) = default; 
+    PionsEvent& operator=( const PionsEvent& other ) = default;
 
     /// Конструктор класса PionsEvent
     /// numberOfPions_ - число пионов в событии

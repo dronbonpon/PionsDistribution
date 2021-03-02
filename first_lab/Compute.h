@@ -1,3 +1,5 @@
+#pragma once
+
 #include <vector>
 
 #include <TRandom.h>
@@ -5,6 +7,12 @@
 
 #include "thread_RAII.h"
 #include "PionsEvent.h"
+
+#ifdef __linux__
+const static int TASK_NUMBER = sysconf( _SC_NPROCESSORS_ONLN ) / 2;
+#else
+const static int TASK_NUMBER = 4;
+#endif
 
 void ComputeSequentially( std::vector<PionsEvent>& pions,
                           int startIndex, int endIndex )
@@ -40,7 +48,11 @@ void ComputeSequentially( std::vector<PionsEvent>& pions,
 
 void ComputeParallel( std::vector<PionsEvent>& pions )
 {
-    int numberOfTasks = 8;
+    int numberOfTasks;
+
+    TASK_NUMBER ? numberOfTasks = TASK_NUMBER : numberOfTasks = 1;
+
+    std::cout << "Parrallel computing on " << numberOfTasks << " threads" << std::endl;
     
     std::vector<ThreadRAII> threads;
 
@@ -86,9 +98,10 @@ void ComputeParams( std::vector<PionsEvent>& pions )
         for ( auto & pion : event.singlePions )
         {
             double absMomentum = std::sqrt( pion.px*pion.px + pion.py*pion.py + pion.pz*pion.pz );
-            double rapidity = std::log( ( pion.energy + absMomentum )/( pion.energy - absMomentum ) )/2;
+            double rapidity = 0.5 * std::log( ( pion.energy + pion.pz ) /
+                                                ( pion.energy - pion.pz ) );
             pion.SetRapidity( rapidity );
-            double pseudorapidity = std::log( ( pion.energy + pion.pz )/( pion.energy - pion.pz ) )/2;
+            double pseudorapidity = 0.5 * std::log( ( absMomentum + pion.pz )/( absMomentum - pion.pz ) );
             pion.SetPseudorapidity( pseudorapidity );
             if ( pion.px != 0 )
             {
@@ -102,13 +115,13 @@ void ComputeParams( std::vector<PionsEvent>& pions )
 // Выполняет преобразование Лоренца для вектора из событий пионов
 void LorentzTransformation( std::vector<PionsEvent>& pions, double b )
 {
-    long int speedOfLight = 1;
+    int speedOfLight = 1;
     for ( auto & event : pions )
     {
         for ( auto & pion : event.singlePions )
         {
-            pion.pz = ( pion.pz + b*pion.energy/speedOfLight )/std::sqrt( 1 - b*b );
-            pion.energy = ( pion.energy + b*speedOfLight*pion.pz )/std::sqrt( 1 - b*b );
+            pion.pz = ( pion.pz ) * std::sqrt( 1 - b*b ) - b*pion.energy/speedOfLight;
+            pion.energy = std::sqrt( 1 - b*b ) * pion.energy - b*speedOfLight*pion.pz;
         }
     }
 }
