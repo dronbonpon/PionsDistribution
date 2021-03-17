@@ -4,57 +4,111 @@
 #include <cmath>
 #include <thread>
 
-#include "SinglePion.h"
-#include "thread_RAII.h"
+#include "SingleParticle.h"
+#include "threadRAII.h"
+
+
+/// Конструктор класса PionsEventParams
+/// numberOfPions_ - число пионов в событии
+/// pionMass - масса пионов в событии
+/// energyPred - функция, которая определяет значение энергии для пионов в данном событии
+/// energyParam - параметр этой функции
+/// momentumPred - функция, которая определяет значения трех проекций импульса
+template<typename EnergyPred, typename MomentumPred, typename EnergyParam>
+struct PionsEventParams
+{
+
+friend struct PionsEvent;
+
+    PionsEventParams( int numberOfPions, double pionMass, EnergyPred energyPred,
+                      EnergyParam energyParam, MomentumPred momentumPred )
+    : numberOfPions_( numberOfPions ),
+      pionMass_( pionMass ),
+      energyPred_( energyPred ),
+      energyParam_( energyParam ),
+      momentumPred_( momentumPred )
+    {}  
+
+private:
+    int numberOfPions_;
+    double pionMass_;
+    EnergyPred energyPred_;
+    EnergyParam energyParam_;
+    MomentumPred momentumPred_;
+};
+
+template<typename EnergyPred, typename MomentumPred, typename EnergyParam>
+PionsEventParams<EnergyPred, MomentumPred, EnergyParam> 
+createPionsEventParams( int numberOfPions, double pionMass, EnergyPred energyPred,
+                                         EnergyParam energyParam, MomentumPred momentumPred )
+{
+    return PionsEventParams<EnergyPred, MomentumPred, EnergyParam>( 
+           numberOfPions, pionMass, energyPred, energyParam, momentumPred
+     );
+}
+
+struct MomentumVector
+{
+
+friend struct PionsEvent;
+
+    MomentumVector( std::vector<float>& px,
+                    std::vector<float>& py,
+                    std::vector<float>& pz,
+                    std::vector<float>& ip)
+    : px_( std::move(px) ),
+      py_( std::move(py) ),
+      pz_( std::move(pz) ),
+      ip_( std::move(ip) )
+    {}      
+
+private:
+    const std::vector<float> px_;
+    const std::vector<float> py_;
+    const std::vector<float> pz_;
+    const std::vector<float> ip_;
+};
 
 struct PionsEvent
 {
     std::size_t numberOfPions;
-    std::vector<SinglePion> singlePions;
+    std::vector<SingleParticle> singleParticles;
 
     PionsEvent() = default;
     PionsEvent( const PionsEvent& other ) = default;
     PionsEvent& operator=( const PionsEvent& other ) = default;
 
-    /// Конструктор класса PionsEvent
-    /// numberOfPions_ - число пионов в событии
-    /// energyPred - функция, которая определяет значение энергии для пионов в данном событии
-    /// energyParam - параметр этой функции
-    /// momentumPred - функция, которая определяет значения трех проекций импульса
-    /// pionMass - масса пионов в событии
-    template<typename EnergyPred, typename MomentumPred, typename EnergyParam >
-    PionsEvent( int numberOfPions_, EnergyPred energyPred, EnergyParam energyParam, 
-                MomentumPred momentumPred, double pionMass )
-    : numberOfPions( numberOfPions_ )
+    template<typename EnergyPred, typename MomentumPred, typename EnergyParam>
+    PionsEvent( PionsEventParams<EnergyPred, MomentumPred, EnergyParam> pionsEventParams )
+    : numberOfPions( pionsEventParams.numberOfPions_ )
     {
         std::unique_ptr<TRandom> rnd = std::make_unique<TRandom3>();
-        singlePions = std::vector<SinglePion>( numberOfPions_ );
-        for ( int i = 0; i < numberOfPions_; ++i )
+        singleParticles = std::vector<SingleParticle>( numberOfPions );
+        for ( int i = 0; i < numberOfPions; ++i )
         {
-            if ( pionMass <= 0 )
+            if ( pionsEventParams.pionMass_ <= 0 )
             {
                 throw std::runtime_error( "Pion's mass must be positive" );
             }
             
-            double energy = energyPred( energyParam );
-            double absoluteRadius = std::sqrt( 2 * pionMass * energy );
+            double energy = pionsEventParams.energyPred_( pionsEventParams.energyParam_ );
+            double absoluteRadius = std::sqrt( 2 * pionsEventParams.pionMass_ * energy );
             double px, py, pz;
-            momentumPred( px, py, pz, absoluteRadius );
-            singlePions[i] = SinglePion( energy, px, py, pz );
+            pionsEventParams.momentumPred_( px, py, pz, absoluteRadius );
+            singleParticles[i] = SingleParticle( energy, px, py, pz );
         }
     }
 
-    /// Конструктор класса PionsEvent
-    /// px, py, pz, ip - соотвественно имульсы и энергии отдельных пионов в событии
-    /// numberOfPions_ - число пионов в событии
-    PionsEvent( const std::vector<float>& px, const std::vector<float>& py, 
-                const std::vector<float>& pz, const std::vector<float>& ip, int numberOfPions_ )
+    PionsEvent( const MomentumVector& momentumVector, int numberOfPions_ )
     : numberOfPions( numberOfPions_ )
     {
         for ( int i = 0; i < numberOfPions; ++i )
         {
-            SinglePion pion( ip[i], px[i], py[i], pz[i] );
-            singlePions.push_back( pion );
+            SingleParticle pion( momentumVector.ip_[i],
+                                 momentumVector.px_[i], 
+                                 momentumVector.py_[i],
+                                 momentumVector.pz_[i] );
+            singleParticles.push_back( pion );
         }
     }
 };

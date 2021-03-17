@@ -1,8 +1,8 @@
 #pragma once
 
-/// Структура отдельного пиона с полями
+/// Структура отдельной частицы с полями
 /// энергия, импульсы, быстрота, псевдобыстрота и азимутальный угол
-struct SinglePion
+struct SingleParticle
 {
     double energy;
     double px;
@@ -12,11 +12,11 @@ struct SinglePion
     double pseudorapidity = 0;
     double azimuthalAngle = 0;
 
-    SinglePion() = default;
-    SinglePion( const SinglePion& other ) = default;
-    SinglePion& operator=( const SinglePion& other ) = default;
+    SingleParticle() = default;
+    SingleParticle( const SingleParticle& other ) = default;
+    SingleParticle& operator=( const SingleParticle& other ) = default;
     
-    SinglePion( double energy_, double px_, double py_, double pz_ )
+    SingleParticle( double energy_, double px_, double py_, double pz_ )
     :energy( energy_), px( px_ ), py( py_), pz( pz_ )
     {}
 

@@ -31,7 +31,7 @@ void FillTree( TTree& tree, const std::vector<PionsEvent>& pions )
     
     for ( const auto& pionEvent: pions )
     {
-        for ( const auto& pion: pionEvent.singlePions )
+        for ( const auto& pion: pionEvent.singleParticles )
         {
             px = pion.px;
             py = pion.py;
@@ -81,7 +81,7 @@ void ReadTree( const std::string& fileName, const std::string& treeName,
         }
         else
         {
-            PionsEvent event( pxVector, pyVector, pzVector, ipVector, numberOfPions );
+            PionsEvent event( MomentumVector( pxVector, pyVector, pzVector, ipVector ), numberOfPions );
             pions.push_back( event );
             pxVector.clear();
             pyVector.clear();
@@ -91,28 +91,52 @@ void ReadTree( const std::string& fileName, const std::string& treeName,
             previousEvent = eventNum;
         }
     }
-    PionsEvent event( pxVector, pyVector, pzVector, ipVector, numberOfPions );
+    PionsEvent event( MomentumVector( pxVector, pyVector, pzVector, ipVector ), numberOfPions );
     pions.push_back( event );
 }
 
 void SetDistrOptions( TH1D* distr, const std::string& xAxis, const std::string& yAxis,
-                      int fillColor = 54, int markerStyle = 10 )
+                      int fillColor = 54, int markerStyle = 20 )
 {
     distr->SetXTitle( xAxis.c_str() );
     distr->SetYTitle( yAxis.c_str() );
     distr->SetFillColor( fillColor );
     distr->SetMarkerStyle( markerStyle );
     distr->SetStats( false );
+    gStyle->SetEndErrorSize(3);
+    gStyle->SetErrorX(1.);
+}
+
+std::pair<double, double> MaxRapidityAndPseudoRapidity( const std::vector<PionsEvent>& pions )
+{
+    double maxRapidity = 0;
+    double maxPseudoRapidity = 0;
+    for ( const auto & event : pions )
+    {
+        for ( const auto & pion : event.singleParticles )
+        {
+            if ( pion.rapidity > maxRapidity )
+            {
+                maxRapidity = pion.rapidity;
+            }
+            if ( pion.pseudorapidity > maxPseudoRapidity )
+            {
+                maxPseudoRapidity = pion.pseudorapidity;
+            }
+        }
+    }
+    return std::make_pair( maxRapidity, maxPseudoRapidity );
 }
 
 void FillDistr( TH1D* rapidity, TH1D* pseudorapidity, const std::vector<PionsEvent>& pions )
 {
+    std::pair<double, double> maxValues = MaxRapidityAndPseudoRapidity( pions );
     for ( const auto & event : pions )
     {
-        for ( const auto & pion : event.singlePions )
+        for ( const auto & pion : event.singleParticles )
         {
-            rapidity->Fill( pion.rapidity );
-            pseudorapidity->Fill( pion.pseudorapidity );
+            rapidity->Fill( maxValues.first - pion.rapidity );
+            pseudorapidity->Fill( maxValues.second - pion.pseudorapidity );
         }
     }
 }
@@ -128,13 +152,29 @@ void FillDistr( TH1D* rapidityDistrBefore, TH1D* rapidityDistrAfter,
     SetDistrOptions( pseudorapidityDistrAfter, "Pseudoapidity", "Number of cases" );
 
     FillDistr( rapidityDistrBefore, pseudorapidityDistrBefore, pions );
-    FillDistr( rapidityDistrAfter, pseudorapidityDistrAfter, pionsAfterLorentz );
+    
+    for ( int i  = 0; i < 5; i++ )
+    {
+        FillDistr( rapidityDistrAfter, pseudorapidityDistrAfter, pionsAfterLorentz );
+    }
 
 }
 
-void first_lab()
+struct HistOptions
 {
-    TFile file("tree.root", "recreate");
+    int nbinsx = 100;
+    double xLow = 0;
+    double xUp = 5.5;
+};
+
+TH1D* CreateHist( const std::string& histName, HistOptions histOptions = {} )
+{
+    return new TH1D( histName.c_str(), histName.c_str(),
+                     histOptions.nbinsx, histOptions.xLow, histOptions.xUp );
+}
+
+void FirstLab()
+{
     int eventNumber;
     std::cout << "Enter the number of events: ";
     std::cin >> eventNumber;
@@ -145,8 +185,10 @@ void first_lab()
     }
     if ( eventNumber > 2000000 )
     {
-        throw std::runtime_error( "Too events points" );
+        throw std::runtime_error( "Too many events" );
     }
+
+    TFile file("tree.root", "recreate");
 
     auto pions = std::vector<PionsEvent>( eventNumber );
 
@@ -182,21 +224,13 @@ void first_lab()
     TFile outputFile( "OutputHists.root", "RECREATE" );
 
     // Рисуем графики
-    TH1D* rapidityDistrBefore = new TH1D( "Rapidity distribution of pions before Lorentz transformation", 
-                                          "Rapidity distribution of pions before Lorentz transformation", 
-                                          100, -0.5, 5.5 );
+    TH1D* rapidityDistrAfter = CreateHist( "Rapidity distribution of pions before Lorentz transformation" );
 
-    TH1D* rapidityDistrAfter = new TH1D( "Rapidity distribution of pions after Lorentz transformation", 
-                                         "Rapidity distribution of pions after Lorentz transformation", 
-                                         100, -0.5, 5.5 );
+    TH1D* rapidityDistrBefore = CreateHist( "Rapidity distribution of pions after Lorentz transformation" );
 
-    TH1D* pseudorapidityDistrBefore = new TH1D( "Pseudorapidity distribution of pions before Lorentz transformation", 
-                                                "Pseudorapidity distribution of pions before Lorentz transformation", 
-                                                100, -0.5, 5.5 );
+    TH1D* pseudorapidityDistrAfter = CreateHist( "Pseudorapidity distribution of pions before Lorentz transformation" );
 
-    TH1D* pseudorapidityDistrAfter = new TH1D( "Pseudorapidity distribution of pions after Lorentz transformation", 
-                                               "Pseudorapidity distribution of pions after Lorentz transformation", 
-                                               100, -0.5, 5.5 );
+    TH1D* pseudorapidityDistrBefore = CreateHist( "Pseudorapidity distribution of pions after Lorentz transformation" );
     
     FillDistr( rapidityDistrBefore, rapidityDistrAfter, pseudorapidityDistrBefore, 
                pseudorapidityDistrAfter, pionsFromTree, pionsFromTreeAfterLorentz );

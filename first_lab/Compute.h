@@ -5,7 +5,7 @@
 #include <TRandom.h>
 #include <TRandom3.h>
 
-#include "thread_RAII.h"
+#include "threadRAII.h"
 #include "PionsEvent.h"
 
 #ifdef __linux__
@@ -30,7 +30,8 @@ void ComputeSequentially( std::vector<PionsEvent>& pions,
         };
         int energyParam = 1000; // В МЭв
 
-        auto momentumPred = [&rnd]( double& px, double& py, double& pz, double absoluteRadius )
+        auto momentumPred = 
+        [&rnd]( double& px, double& py, double& pz, double absoluteRadius )
         {
             rnd->Sphere( px, py, pz, absoluteRadius );
         };
@@ -42,7 +43,8 @@ void ComputeSequentially( std::vector<PionsEvent>& pions,
         // Импульс и энергия каждой частицы в каждом событии также выбирается случайно:
         // Энергия - по экспоненциальному закону с параметром 1000 (в МЭв),
         // Импульс - по равномерно распределенной сфере с радиусом sqrt( 2 * масса пионов * величина энергии )
-        pions[i] = PionsEvent( numberOfPions, energyPred, energyParam, momentumPred, pionMass );
+        pions[i] = PionsEvent( 
+            createPionsEventParams( numberOfPions, pionMass, energyPred, energyParam, momentumPred ) );
     }
 }
 
@@ -95,7 +97,7 @@ void ComputeParams( std::vector<PionsEvent>& pions )
 {
     for ( auto & event : pions )
     {
-        for ( auto & pion : event.singlePions )
+        for ( auto & pion : event.singleParticles )
         {
             double absMomentum = std::sqrt( pion.px*pion.px + pion.py*pion.py + pion.pz*pion.pz );
             double rapidity = 0.5 * std::log( ( pion.energy + pion.pz ) /
@@ -118,7 +120,7 @@ void LorentzTransformation( std::vector<PionsEvent>& pions, double b )
     int speedOfLight = 1;
     for ( auto & event : pions )
     {
-        for ( auto & pion : event.singlePions )
+        for ( auto & pion : event.singleParticles )
         {
             pion.pz = ( pion.pz ) * std::sqrt( 1 - b*b ) - b*pion.energy/speedOfLight;
             pion.energy = std::sqrt( 1 - b*b ) * pion.energy - b*speedOfLight*pion.pz;
